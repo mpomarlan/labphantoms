@@ -121,14 +121,14 @@ class LabPhantoms : public WorldPlugin
         std::string trackedModels = pluginParameters->Get<std::string>("trackedModels");
         std::string dbgStr = "Tracked Models as given by launch file: ";
         dbgStr = dbgStr + trackedModels;
-        ROS_INFO(dbgStr.c_str());
+        std::cerr << dbgStr << "\n";
 
         std::stringstream ss(trackedModels);
         ss.imbue(std::locale(std::locale(), new tokens()));
         std::istream_iterator<std::string> begin(ss);
         std::istream_iterator<std::string> end;
         std::vector<std::string> vstrings(begin, end);
-        std::copy(vstrings.begin(), vstrings.end(), std::ostream_iterator<std::string>(std::cout, "\n"));
+        std::copy(vstrings.begin(), vstrings.end(), std::ostream_iterator<std::string>(std::cerr, "\n"));
         phantoms = vstrings;
     }
   }
