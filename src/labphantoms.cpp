@@ -119,7 +119,9 @@ class LabPhantoms : public WorldPlugin
     if(pluginParameters->HasElement("trackedModels"))
     {
         std::string trackedModels = pluginParameters->Get<std::string>("trackedModels");
-        ROS_INFO("Tracked Models as given by launch file: %s", trackedModels);
+        std::string dbgStr = "Tracked Models as given by launch file: ";
+        dbgStr = dbgStr + trackedModels;
+        ROS_INFO(dbgStr.c_str());
 
         std::stringstream ss(trackedModels);
         ss.imbue(std::locale(std::locale(), new tokens()));
