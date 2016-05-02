@@ -7,6 +7,10 @@
 #include <boost/bind/bind.hpp>
 #include <tf2_msgs/TFMessage.h>
 
+#include <tf/transform_listener.h>
+
+#include <boost/thread.hpp>
+
 namespace gazebo
 {
 
@@ -28,6 +32,14 @@ struct tokens: std::ctype<char>
     }
 };
 
+typedef struct
+{
+    physics::WorldPtr parentWorld;
+    std::vector<std::string> phantoms;
+    tf::TransformListener listener;
+}tPhantomContext;
+
+tPhantomContext PhantomContext;
 
 class LabPhantoms;
 void onTFData2(const tf2_msgs::TFMessage::ConstPtr& msg);
@@ -47,6 +59,26 @@ math::Pose Msg2Pose(geometry_msgs::Transform const& msg)
     q.y = msg.rotation.y;
     q.z = msg.rotation.z;
 
+    pose.Set(v, q);
+    return pose;
+}
+
+math::Pose StampedTransform2Pose(tf::StampedTransform const& transform)
+{
+    tf::Vector3 vt = transform.getOrigin();
+    tf::Quaternion qt = transform.getRotation();
+    math::Vector3 v;
+    math::Quaternion q;
+
+    v.x = vt.x();
+    v.y = vt.y();
+    v.z = vt.z();
+    q.w = qt.w();
+    q.x = qt.x();
+    q.y = qt.y();
+    q.z = qt.z();
+
+    math::Pose pose;
     pose.Set(v, q);
     return pose;
 }
@@ -71,8 +103,45 @@ class LabPhantoms : public WorldPlugin
   }
   ~LabPhantoms()
   {
+      running = false;
       if(n)
           delete n;
+  }
+
+  void monitorTFThread(void)
+  {
+      ros::Rate rate(50.0);
+      while(running)
+      {
+          physics::WorldPtr world = parentWorld;
+          std::vector<std::string> phantomsL = phantoms;
+          tf::TransformListener listenerL;
+
+          int maxK = phantomsL.size();
+
+          for(int k = 0; k < maxK; k++)
+          {
+              std::string childFrame = phantomsL[k];
+
+              tf::StampedTransform transform;
+              try
+              {
+                  listenerL.lookupTransform(childFrame, "/map", ros::Time(), transform);
+
+                  physics::ModelPtr childModel = world->GetModel(childFrame);
+                  if(childModel.get())
+                  {
+                      math::Pose world2Child = StampedTransform2Pose(transform);
+                      childModel->SetWorldPose(world2Child);
+                  }
+              }
+              catch (tf::TransformException ex)
+              {
+                  //ROS_ERROR("%s", ex.what());
+              }
+          }
+          rate.sleep();
+      }
   }
 
   void onTFData(const tf2_msgs::TFMessageConstPtr& msg)
@@ -120,7 +189,7 @@ class LabPhantoms : public WorldPlugin
     ros::init(argc, argv, "labphantoms");
     n = new ros::NodeHandle();
 
-    ros::Subscriber sub = n->subscribe("/tf", 1, &LabPhantoms::onTFData, this);
+    //ros::Subscriber sub = n->subscribe("/tf", 1, &LabPhantoms::onTFData, this);
 
     if(pluginParameters->HasElement("trackedModels"))
     {
@@ -137,13 +206,18 @@ class LabPhantoms : public WorldPlugin
         std::copy(vstrings.begin(), vstrings.end(), std::ostream_iterator<std::string>(std::cerr, "\n"));
         phantoms = vstrings;
     }
+
+    running = true;
+    boost::thread(&LabPhantoms::monitorTFThread, this);
   }
 
   protected:
+    bool running;
     ros::NodeHandle *n;
     physics::WorldPtr parentWorld;
     sdf::ElementPtr pluginParameters;
     std::vector<std::string> phantoms;
+    tf::TransformListener listener;
 };
 
 // Register this plugin with the simulator

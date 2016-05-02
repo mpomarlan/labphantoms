@@ -16,13 +16,14 @@ endif()
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  tf
   tf2_msgs
 )
 
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES assignment_6_1
-  CATKIN_DEPENDS roscpp std_msgs tf2_msgs message_runtime
+  CATKIN_DEPENDS roscpp std_msgs tf tf2_msgs message_runtime
 #  DEPENDS system_lib
 )
 
