@@ -89,6 +89,12 @@ class LabPhantoms : public WorldPlugin
           std::string parentFrame = transform.header.frame_id;
           std::string childFrame = transform.child_frame_id;
 
+          /*DIRTY HAXXXXX TO BE REMOVED.*/
+          if("in_r_gripper_tool_frame" == parentFrame)
+              parentFrame = "r_gripper_tool_frame";
+          if("in_l_gripper_tool_frame" == parentFrame)
+              parentFrame = "l_gripper_tool_frame";
+
           if(havePhantom(childFrame))
           {
               physics::ModelPtr childModel = world->GetModel(childFrame);
