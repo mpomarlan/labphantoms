@@ -163,8 +163,8 @@ class LabPhantoms : public WorldPlugin
                   {
                       math::Pose world2Child = StampedTransform2Pose(transform);
                       childModel->SetWorldPose(world2Child);
+                      childModel->SetGravityMode(true);
                       childModel->SetStatic(true);
-                      childModel->SetGravityMode(false);
                   }
               }
               catch (tf::TransformException ex)
