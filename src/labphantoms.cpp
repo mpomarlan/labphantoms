@@ -122,7 +122,7 @@ class LabPhantoms : public WorldPlugin
 
           int maxK = phantomsL.size();
 
-          listenerL.waitForTransform("bottle_250ml_0_frame", "/map", ros::Time::now(), ros::Duration(5.0));
+          listenerL.waitForTransform("bottle_250ml_0_frame", "/map", ros::Time::now(), ros::Duration(3.0));
           for(int k = 0; k < maxK; k++)
           {
               std::string childFrame = "/";
