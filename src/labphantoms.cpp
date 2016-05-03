@@ -73,6 +73,9 @@ math::Pose StampedTransform2Pose(tf::StampedTransform const& transform)
     v.x = vt.x();
     v.y = vt.y();
     v.z = vt.z();
+    /*SUPER DIRTY HAXX*/
+    if(0.755 > v.z)
+        v.z = 0.755;
     q.w = qt.w();
     q.x = qt.x();
     q.y = qt.y();
@@ -110,7 +113,7 @@ class LabPhantoms : public WorldPlugin
 
   void monitorTFThread(void)
   {
-      ros::Rate rate(50.0);
+      ros::Rate rate(0.5);
       while(running)
       {
           physics::WorldPtr world = parentWorld;
@@ -119,25 +122,54 @@ class LabPhantoms : public WorldPlugin
 
           int maxK = phantomsL.size();
 
+          listenerL.waitForTransform("bottle_250ml_0_frame", "/map", ros::Time::now(), ros::Duration(5.0));
           for(int k = 0; k < maxK; k++)
           {
-              std::string childFrame = phantomsL[k];
+              std::string childFrame = "/";
+              childFrame += phantomsL[k] + "_frame";
 
               tf::StampedTransform transform;
               try
               {
-                  listenerL.lookupTransform(childFrame, "/map", ros::Time(), transform);
+                  ros::Time now = ros::Time::now();
+                  listenerL.lookupTransform("/map", childFrame, ros::Time(), transform);
 
-                  physics::ModelPtr childModel = world->GetModel(childFrame);
+                  if(phantomsL[k] == "pipette_accumax")
+                  {
+                      math::Pose p = StampedTransform2Pose(transform);
+                      std::cerr << "PIPETTE TRANSFORM to /map V(" << p.pos.x << " " << p.pos.y << " " << p.pos.z << ") Q(" << p.rot.w << " " << p.rot.x << " " << p.rot.y << " " << p.rot.z << ")" << std::endl;
+                  }
+
+                  if(phantomsL[k] == "bottle_250ml")
+                  {
+                      math::Pose p = StampedTransform2Pose(transform);
+                      std::cerr << "BOTTLE_250ML TRANSFORM to /map V(" << p.pos.x << " " << p.pos.y << " " << p.pos.z << ") Q(" << p.rot.w << " " << p.rot.x << " " << p.rot.y << " " << p.rot.z << ")" << std::endl;
+                  }
+
+                  if(phantomsL[k] == "mixer_ikamag")
+                  {
+                      math::Pose p = StampedTransform2Pose(transform);
+                      std::cerr << "MIXER_IKAMAG TRANSFORM to /map V(" << p.pos.x << " " << p.pos.y << " " << p.pos.z << ") Q(" << p.rot.w << " " << p.rot.x << " " << p.rot.y << " " << p.rot.z << ")" << std::endl;
+                  }
+
+                  if(phantomsL[k] == "flask_400ml_0")
+                  {
+                      math::Pose p = StampedTransform2Pose(transform);
+                      std::cerr << "FLASK_400ml_0 TRANSFORM to /map V(" << p.pos.x << " " << p.pos.y << " " << p.pos.z << ") Q(" << p.rot.w << " " << p.rot.x << " " << p.rot.y << " " << p.rot.z << ")" << std::endl;
+                  }
+
+                  physics::ModelPtr childModel = world->GetModel(phantomsL[k]);
                   if(childModel.get())
                   {
                       math::Pose world2Child = StampedTransform2Pose(transform);
                       childModel->SetWorldPose(world2Child);
+                      childModel->SetStatic(true);
+                      childModel->SetGravityMode(false);
                   }
               }
               catch (tf::TransformException ex)
               {
-                  //ROS_ERROR("%s", ex.what());
+                  ROS_ERROR("%s", ex.what());
               }
           }
           rate.sleep();
